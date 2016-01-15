@@ -1,0 +1,787 @@
+#include<stdio.h>
+#include<string.h>
+#include<ctype.h>
+#include<stdlib.h>
+#define MAXBUF 1023
+int Cur=0;
+int type[MAXBUF];
+int line[MAXBUF];
+char *string[MAXBUF];
+FILE *fpin;
+FILE *fpout;
+int FuZhiYuJu();
+int TiaoJianYuJu();
+int XunHuanYuJu();
+void BoolLiang();
+void BiaoDaShi();
+void Xiang();
+void YinZi();
+void YuJuChuan();
+void YuJu();
+void Body();
+void ChengXu();
+void Yacc();
+int Judge(char*);
+void lexscanf();
+int Judge(char *p)
+{
+char *word[]={"exp","throw","catch","try","virtual","this","delete","new","protected","private","public","class","return","while","if","else","int","void","float","string"};
+int ptr,i,flag;
+flag=0;
+for(i=0;i<18;i++)
+{
+ptr=stricmp(p,word[i]);
+if(ptr==0)
+{
+flag=1;
+return(i+1);
+break;
+}
+}
+if(flag==0)
+{
+return 0;
+}
+return 0;
+}
+void lexscanf()
+{
+char arr[MAXBUF];
+int i=0;
+int j=0;
+char ch;
+int lineo=1;
+//fprintf(fpout,"<?xmlversion=\"1.0\" ?>\n");
+//fprintf(fpout,"<root>\n");
+while(1)
+{
+fscanf(fpin,"%c",&ch); //从输入文件中读入字符
+if(ch==' '||ch=='\t') //清除空白
+;
+else if(ch=='\n') //识别回车，行数+1
+lineo++;
+else if(isdigit(ch)) //如果输入字符为数字
+{
+while(isdigit(ch)) //一直读字符，直到读入的字符不是数字
+{
+arr[j]=ch;
+j++;
+fscanf(fpin,"%c",&ch);
+}
+fseek(fpin,-1L,SEEK_CUR);
+char*
+temp1=(char*)malloc(j+1);
+memcpy(temp1,arr,j); //将缓冲区的内容拷贝到 temp1 中去
+temp1[j]='\0';
+j=0;
+type[Cur]=44;
+line[Cur]=lineo;
+string[Cur]=temp1;
+Cur++;
+}
+else if(isalpha(ch)) //如果读入的字符为字母
+{
+while(isalpha(ch)||isdigit(ch))
+{
+arr[i]=ch;
+i++;
+fscanf(fpin,"%c",&ch);
+}
+fseek(fpin,-1L,SEEK_CUR);
+char*
+temp=(char*)malloc(i+1);
+memcpy(temp,arr,i);
+temp[i]='\0';
+i=0;
+if(Judge(temp)) //如果读入的字母能与关键字相等
+{
+type[Cur]=Judge(temp);
+line[Cur]=lineo;
+string[Cur]=temp;
+Cur++;
+}
+else
+{
+type[Cur]=43;
+line[Cur]=lineo;
+string[Cur]=temp;
+Cur++;
+}
+}
+else if(ch=='<') //处理二字符运算符<=
+{
+fscanf(fpin,"%c",&ch);
+if(ch=='=')
+{
+type[Cur]=29;
+line[Cur]=lineo;
+string[Cur]="LTEQ";
+Cur++;
+}
+else
+if(isdigit(ch)||isalpha(ch)||ch==' ')
+{
+fseek(fpin,-1L,SEEK_CUR);
+type[Cur]=23;
+line[Cur]=lineo;
+string[Cur]="LT";
+Cur++;
+}
+}
+else if(ch=='>') //处理二字符运算符>=
+{
+fscanf(fpin,"%c",&ch);
+if(ch=='=')
+{
+type[Cur]=26;
+line[Cur]=lineo;
+string[Cur]="GTEQ";
+Cur++;
+}
+else
+if(isdigit(ch)||isalpha(ch)||ch==' ')
+{
+fseek(fpin,-1L,SEEK_CUR);
+type[Cur]=25;
+line[Cur]=lineo;
+string[Cur]="GT";
+Cur++;
+}
+}
+else if(ch=='=') //处理二字符运算符==
+{
+fscanf(fpin,"%c",&ch);
+if(ch=='=')
+{
+type[Cur]=27;
+line[Cur]=lineo;
+string[Cur]="EQ";
+Cur++;
+}
+else
+if(isdigit(ch)||isalpha(ch)||ch==' ')
+{
+fseek(fpin,-1L,SEEK_CUR);
+type[Cur]=29;
+line[Cur]=lineo;
+string[Cur]="ASSIGN";
+Cur++;
+}
+}
+else if(ch=='/')
+{
+fscanf(fpin, "%c",&ch);
+if(ch=='*')
+{
+while(1){
+fscanf(fpin,"%c",&ch);
+while(ch!='*')
+{
+fscanf(fpin,"%c",&ch);
+}
+fscanf(fpin,"%c",&ch);
+if(ch=='/')
+break;
+}
+}
+}
+else if(ch=='!') //处理二字符运算符!=
+{
+fscanf(fpin,"%c",&ch);
+if(ch=='=')
+{
+type[Cur]=28;
+line[Cur]=lineo;
+string[Cur]="NEQ";
+Cur++;
+}
+}
+else //处理各种单字符运算符
+{
+if(ch=='+')
+{
+type[Cur]=19;
+line[Cur]=lineo;
+string[Cur]="+";
+Cur++;
+continue;
+}
+if(ch=='-')
+{
+type[Cur]=20;
+line[Cur]=lineo;
+string[Cur]="-";
+Cur++;
+continue;
+}
+if(ch=='\\')
+{
+type[Cur]=22;
+line[Cur]=lineo;
+string[Cur]="SLASH";
+Cur++;
+continue;
+}
+if(ch==';')
+{
+type[Cur]=30;
+line[Cur]=lineo;
+string[Cur]="SEMI";
+Cur++;
+continue;
+}
+if(ch==',')
+{
+type[Cur]=31;
+line[Cur]=lineo;
+string[Cur]="COMMA";
+Cur++;
+continue;
+}
+if(ch==':')
+{
+type[Cur]=32;
+line[Cur]=lineo;
+string[Cur]="COLON";
+Cur++;
+continue;
+}
+if(ch=='.')
+{
+type[Cur]=33;
+line[Cur]=lineo;
+string[Cur]="DOT";
+Cur++;
+continue;
+}
+if(ch=='~')
+{
+type[Cur]=34;
+line[Cur]=lineo;
+string[Cur]="WAVE";
+Cur++;
+continue;
+}
+if(ch=='(')
+{
+type[Cur]=35;
+line[Cur]=lineo;
+string[Cur]="LPAREN";
+Cur++;
+continue;
+}
+if(ch==')')
+{
+type[Cur]=36;
+line[Cur]=lineo;
+string[Cur]="RPAREN";
+Cur++;
+continue;
+}
+if(ch=='[')
+{
+type[Cur]=37;
+line[Cur]=lineo;
+string[Cur]="LSQUAR";
+Cur++;
+continue;
+}
+if(ch==']')
+{
+type[Cur]=38;
+line[Cur]=lineo;
+string[Cur]="RSQUAR";
+Cur++;
+continue;
+}
+if(ch=='{')
+{
+type[Cur]=39;
+line[Cur]=lineo;
+string[Cur]="LBRACE";
+Cur++;
+continue;
+}
+if(ch=='}')
+{
+type[Cur]=40;
+line[Cur]=lineo;
+string[Cur]="RBRACE";
+Cur++;
+continue;
+}
+if(ch=='*')
+{
+type[Cur]=21;
+line[Cur]=lineo;
+string[Cur]="STAR";
+Cur++;
+continue;
+}
+if(ch=='#')//终止符
+{
+type[Cur]=45;
+line[Cur]=lineo;
+string[Cur]="STOP";
+Cur++;
+break;
+}
+}
+}
+}
+int FuZhiYuJu() //赋值语句
+{
+if(type[Cur]=!43)
+{
+printf("语法错误，缺少标示符。错误行号%d\n",line[Cur]);
+}
+else
+fprintf(fpout," <tree line=\"%d\"nodetype=\"ASSIGN\" nodestring=\"=\"datatype=\"none\"/>\n",line[Cur]);
+fprintf(fpout," <child>\n");
+fprintf(fpout," <treeline=\"%d\" nodetype=\"VarDecl\"nodestring=\"%s\"datatype=\"int\"/>\n",line[Cur],string[Cur]);
+fprintf(fpout," </tree>\n");
+fprintf(fpout," </child>\n");
+Cur++;
+if(type[Cur]!=29)
+{
+printf("语法错误，缺少=。错误行号%d\n",line[Cur]);
+}
+Cur++;
+BiaoDaShi();
+fprintf(fpout," </tree>\n");
+return 1;
+}
+int TiaoJianYuJu() //条件语句
+{
+if(type[Cur]!=15)
+{
+printf("语法错误，缺少 if。错误行号%d\n",line[Cur]);
+}
+else
+fprintf(fpout," <tree line=\"%d\"nodetype=\"IFStm\" nodestring=\"if\"datatype=\"none\"/>\n",line[Cur]);
+Cur++;
+if(type[Cur]!=35)
+{
+printf("语法错误，缺少(。错误行号%d\n",line[Cur]);
+}
+Cur++;
+fprintf(fpout," <child>\n");
+BiaoDaShi();
+fprintf(fpout," </child>\n");
+if(type[Cur]!=36)
+{
+printf("语法错误，缺少)。错误行号%d\n",line[Cur]);
+}
+Body();
+if(type[Cur]!=16)
+{
+fprintf(fpout," </tree>\n");
+return 0;
+}
+Body();
+fprintf(fpout," </tree>\n");
+return 1;
+}
+int XunHuanYuJu() //循环语句
+{
+if(type[Cur]!=14)
+{
+printf("语法错误，缺少 while。错误行号%d\n",line[Cur]);
+//return 0;
+}
+else
+fprintf(fpout," <treeline=\"%d\" notetype=\"SENTENCES\"notestring=\"none\"datatype=\"none\"/>\n",line[Cur],string[Cur]);
+fprintf(fpout," <child>\n");
+fprintf(fpout," <treeline=\"%d\" nodetype=\"WhileStm\"nodestring=\"while\"datatype=\"none\"/>\n",line[Cur]);
+Cur++;
+if(type[Cur]!=35)
+{
+printf("语法错误，缺少(。错误行号%d\n",line[Cur]);
+}
+Cur++;
+fprintf(fpout," <child>\n");
+BiaoDaShi();
+fprintf(fpout," </child>\n");
+if(type[Cur]!=36)
+{
+printf("语法错误，缺少)。错误行号%d\n",line[Cur]);
+}
+Body();
+fprintf(fpout,"</tree>\n");
+return 1;
+}
+int DiaoYongYuJu()//函数调用语句
+{
+fprintf(fpout," <tree line=\"%d\"nodetype=\"FunCall\" nodestring=\"%s\"datatype=\"none\"/>\n",line[Cur],string[Cur]);
+Cur++;
+Cur++;
+fprintf(fpout," <child>\n");
+while(type[Cur]!=36)
+{
+if(type[Cur]==43||type[Cur]==44)
+{
+fprintf(fpout," <treeline=\"%d\" nodetype=\"Para\"nodestring=\"%s\"datatype=\"int\"/>\n",line[Cur],string[Cur]);
+}
+Cur++;
+if(type[Cur]==31)
+{
+Cur++;
+}
+else if(type[Cur]!=36)
+{
+printf("语法错误，没有函数调用。错误行号%d\n",line[Cur]);
+}
+}
+Cur++;
+fprintf(fpout," </child>\n");
+fprintf(fpout," </tree>\n");
+return 1;
+}
+int ReturnYuJu()
+{
+fprintf(fpout," <tree line=\"%d\"nodetype=\"ReturnStm\" nodestring=\"return\"datatype=\"none\"/>\n",line[Cur]);
+Cur++;
+fprintf(fpout," <child>\n");
+if(type[Cur]==44)
+{
+fprintf(fpout," <treeline=\"%d\" nodetype=\"Number\"nodestring=\"%s\"datatype=\"INT\"/>\n",line[Cur],string[Cur]);
+}
+else if(type[Cur]==43)
+{
+fprintf(fpout," <treeline=\"%d\" nodetype=\"Number\"nodestring=\"%s\"datatype=\"INT\"/>\n",line[Cur],string[Cur]);
+}
+else
+{
+printf("语法错误，返回值类型错误。错误行号%d\n",line[Cur]);
+}
+Cur++;
+fprintf(fpout," </child>\n");
+fprintf(fpout," </tree>\n");
+return 1;
+}
+void BiaoDaShi() //表达式
+{
+Xiang();
+if(type[Cur]==30||type[Cur]==36)
+{
+return;
+}
+else
+{
+if(type[Cur-1]==19)
+fprintf(fpout," <tree line=\"%d\"nodetype=\"PLUS\" nodestring=\"+\"datatype=\"none\"/>\n",line[Cur]);
+else if(type[Cur-1]==20)
+fprintf(fpout," <tree line=\"%d\"nodetype=\"SUB\" nodestring=\"-\"datatype=\"none\"/>\n",line[Cur]);
+else if(type[Cur-1]==23)
+fprintf(fpout," <tree line=\"%d\"nodetype=\"LT\" nodestring=\"&lt;\"datatype=\"none\"/>\n",line[Cur]);
+else if(type[Cur-1]==24)
+fprintf(fpout," <tree line=\"%d\"nodetype=\"LTEQ\" nodestring=\"&lt;=\"datatype=\"none\"/>\n",line[Cur]);
+else if(type[Cur-1]==25)
+fprintf(fpout," <tree line=\"%d\"nodetype=\"GT\" nodestring=\"&gt;\"datatype=\"none\"/>\n",line[Cur]);
+else if(type[Cur-1]==26)
+fprintf(fpout," <tree line=\"%d\"nodetype=\"GTEQ\" nodestring=\"&gt;=\"datatype=\"none\"/>=\n",line[Cur]);
+else if(type[Cur-1]==27)
+fprintf(fpout," <treeline=\"%d\" nodetype=\"EQ\"nodestring=\"==\"datatype=\"none\"/>\n",line[Cur]);
+else if(type[Cur-1]==28)
+fprintf(fpout," <tree line=\"%d\"nodetype=\"NEQ\" nodestring=\"!=\"datatype=\"none\"/>\n",line[Cur]);
+BiaoDaShi();
+fprintf(fpout," </tree>\n");
+}
+}
+void Xiang() //项数
+{
+fprintf(fpout," <child>\n");
+YinZi();
+while(type[Cur]==21||type[Cur]==22)
+{
+Cur++;
+YinZi();
+}
+fprintf(fpout," </child>\n");
+if(type[Cur]==19||type[Cur]==23||type[Cur]==24||type[Cur]==25||type[Cur]==26||type[Cur]==27||type[Cur]==28||type[Cur]==20)
+{
+Cur++;
+}
+}
+void YinZi() //因子
+{
+switch(type[Cur])
+{
+case 35:
+Cur++;
+BiaoDaShi();
+Cur++;
+break;
+case 43:
+if(type[Cur+1]==35)
+{
+DiaoYongYuJu();
+}
+else
+{
+fprintf(fpout,"<tree line=\"%d\" nodetype=\"VarID\"nodestring=\"%s\"datatype=\"none\"/>\n",line[Cur],string[Cur]);
+Cur++;
+}
+break;
+case 44:
+fprintf(fpout," <treeline=\"%d\" nodetype=\"NUMBER\"nodestring=\"%s\"datatype=\"none\"/>\n",line[Cur],string[Cur]);
+Cur++;
+break;
+default:
+printf("语法错误，缺少因子。错误行号%d\n",line[Cur]);
+}
+}
+void YuJuChuan() //语句串
+{
+YuJu();
+while(type[Cur]==30||(type[Cur-1]==40&&(((type[Cur]==43||type[Cur]==15)||type[Cur]==14))||type[Cur]==13))
+{
+if(type[Cur-1]==40)
+{
+if(type[Cur]==43||type[Cur]==15)
+{
+Cur--;
+}
+else
+if(type[Cur]==14||type[Cur]==13)
+{
+Cur--;
+}
+}
+Cur++;
+YuJu();
+}
+}
+void YuJu() //语句
+{
+switch(type[Cur])
+{
+case 43:
+if(type[Cur+1]==35)
+{
+if(DiaoYongYuJu()==1)
+{
+printf("函数调用语句\n");
+}
+}
+else
+{
+if(FuZhiYuJu()==1)
+{
+printf("变量声明\n");
+}
+}
+break;
+case 15:
+if(TiaoJianYuJu()==0)
+{
+printf("if then 分支语句\n",line[Cur]);
+}
+else
+{
+printf("if then else 分支语句\n");
+}
+break;
+case 14:
+if(XunHuanYuJu()==1)
+{
+printf("while do 循环语句\n");
+}
+break;
+case 17:
+Cur++;
+fprintf(fpout," <tree line=\"%d\"notetype=\"VarDecl\" notestring=\"%s\"datatype=\"INT\" />\n",line[Cur],string[Cur]);
+Cur++;
+break;
+case 13:
+if(ReturnYuJu()==1)
+{
+printf("Return 语句\n");
+}
+break;
+case 40:
+break;
+default:
+Cur++;
+break;
+//printf("语法错误，缺少语句。错误行号%d\n",line[Cur]);
+fprintf(fpout," <tree line=\"%d\"notetype=\"VarDecl\" notestring=\"%s\"datatype=\"INT\" />\n",line[Cur],string[Cur]);
+}
+}
+void Body() //程序体
+{
+Cur++;
+switch(type[Cur])
+{
+case 39:
+break;
+case 19:
+fprintf(fpout," <treeline=\"%d\" notetype=\"SENTENCES\"notestring=\"none\"datatype=\"none\"/>\n",line[Cur],string[Cur]);
+fprintf(fpout,"<child>\n");
+fprintf(fpout,"<tree line=\"%d\"notetype=\"EXPRESSION\"notestring=\"++a\"datatype=\"none\"/>\n",line[Cur],string[Cur]);
+break;
+default:
+Cur++;
+break;
+//printf("语法错误,缺少{。错误行号%d\n",line[Cur]);
+}
+Cur++;
+if(type[Cur]!=40)
+{
+YuJuChuan();
+}
+switch(type[Cur])
+{
+case 40:
+break;
+default:
+Cur++;
+break;
+//printf("语法错误,缺少}。错误行号%d\n",line[Cur]);
+}
+Cur++;
+}
+void boddy()
+{
+fprintf(fpout," </child>\n");
+fprintf(fpout," </tree>\n");
+fprintf(fpout," </child>\n");
+fprintf(fpout," </tree>\n");
+fprintf(fpout," </child>\n");
+fprintf(fpout," </tree>\n");
+}
+void ChengXu() //程序
+{
+switch(type[Cur])
+{
+case 17:fprintf(fpout," <tree line=\"%d\"notetype=\"VarDecl\" notestring=\"%s\"datatype=\"INT\" />\n",line[Cur],string[Cur]);
+break;
+case 18:
+break;
+default:
+break;
+//printf("语法错误,缺少类型标示符。错误行号%d\n",line[Cur]);
+}
+Cur++;
+switch(type[Cur])
+{
+case 43:
+break;
+default:
+printf("语法错误,缺少标示符。错误行号%d\n",line[Cur]);
+}
+Cur++;
+switch(type[Cur])
+{
+case 30: //如果是；则说明是变量声明
+if(type[Cur-2]==17)
+fprintf(fpout," <treeline=\"%d\" notetype=\"VarDecl\"notestring=\"%s\"datatype=\"INT\"/>\n",line[Cur],string[Cur-1]);
+else
+fprintf(fpout," <treeline=\"%d\" notetype=\"VarDecl\"notestring=\"%s\"datatype=\"VOID\"/>\n",line[Cur],string[Cur-1]);
+break;
+case 35://如果是(，则说明是函数声明
+if(type[Cur-2]==17)
+{
+fprintf(fpout," <treeline=\"%d\" notetype=\"FunDecl\"notestring=\"%s\"datatype=\"INT\"/>\n",line[Cur],string[Cur-1]);
+Cur++;
+if(type[Cur]!=36)
+{
+fprintf(fpout," <child>\n");
+while(type[Cur]!=36)
+{
+if(type[Cur]==17)
+{
+Cur++;
+fprintf(fpout,"<tree line=\"%d\" nodetype=\"Para\"nodestring=\"%s\"datatype=\"int\"/>\n",line[Cur],string[Cur]);
+}
+Cur++;
+if(type[Cur]==31)
+{
+Cur++;
+}
+else if(type[Cur]!=36)
+{
+printf("语法错误，函数参数声明没有，。错误行号%d\n",line[Cur]);
+}
+}
+fprintf(fpout," </child>\n");
+}
+fprintf(fpout," <child>\n");
+Body();
+fprintf(fpout," </child>\n");
+}
+else
+{
+fprintf(fpout," <treeline=\"%d\" notetype=\"FunDecl\"notestring=\"%s\"datatype=\"VOID\"/>\n",line[Cur],string[Cur-1]);
+Cur++;
+if(type[Cur]!=36)
+{
+fprintf(fpout," <child>\n");
+while(type[Cur]!=36)
+{
+if(type[Cur]==17)
+{
+Cur++;
+fprintf(fpout,"<tree line=\"%d\" nodetype=\"Para\"nodestring=\"%s\"datatype=\"int\"/>\n",line[Cur],string[Cur]);
+}
+Cur++;
+if(type[Cur]==31)
+{
+Cur++;
+}
+else if(type[Cur]!=36)
+{
+printf("语法错误，函数参数声明没有，。错误行号%d\n",line[Cur]);
+}
+}
+fprintf(fpout," </child>\n");
+}
+fprintf(fpout," <child>\n");
+Body();
+fprintf(fpout,"</child>\n");
+}
+break;
+default:
+printf("语法错误,缺少; 。错误行号%d\n",line[Cur]);
+}
+fprintf(fpout," </tree>\n");
+//while(type[Cur]!=45)
+//{
+//if(type[Cur]==17||type[Cur]==18)
+//ChengXu();
+//else
+//{
+//printf("语法错误，缺少类型标示符。错误行号%d\n",line[Cur]);
+//break;
+//}
+//}
+}
+void Yacc() //语法分析器
+{
+fprintf(fpout,"<?xmlversion=\"1.0\" ?>\n");
+fprintf(fpout,"<root>\n");
+Cur=0;
+ChengXu();
+boddy();
+fprintf(fpout,"</root>");
+}
+int main()
+{
+printf("Try your best to find the locationof result!\n");
+if((fpin=fopen("e:\\incode1.txt","rt"))==NULL)
+{
+printf("Cannot open file!");
+exit(1);
+}
+if((fpout=fopen("e:\\outfile.xml","wt"))==NULL)
+{
+printf("Cannot open file!");
+exit(1);
+}
+lexscanf();
+Yacc();
+fclose(fpin);
+fclose(fpout);
+system("pause");
+return 0;
+}
