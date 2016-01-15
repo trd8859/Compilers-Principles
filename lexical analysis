@@ -1,0 +1,119 @@
+#include <string>
+#include <iostream>
+#include <fstream>
+using namespace std;
+char prog[800],token[8];
+char ch;
+int syn,p,m=0,n,sum,row;
+char *rwtab[6]={"void","if","then","while","float","int"};
+string str;
+ifstream fin;
+ofstream f1;
+
+void f()
+{
+    syn=5;
+    ch=prog[p++];
+    while(ch==' ')
+    {
+        ch=prog[p];
+        p++;
+    }
+    if((ch>='a'&&ch<='z')||(ch>='A'&&ch<='Z'))  
+    {
+        m=0;
+        while((ch>='0'&&ch<='9')||(ch>='a'&&ch<='z')||(ch>='A'&&ch<='Z'))
+        {
+            token[m++]=ch;
+            ch=prog[p++];
+        }
+        token[m++]='\0';
+        p--;
+        str="ID";
+        for(n=0;n<6;n++)  
+            if(strcmp(token,rwtab[n])==0)
+            {
+                str=rwtab[n];
+                break;
+            }
+    }
+    else if((ch>='0'&&ch<='9'))  
+    {
+        {
+            sum=0;
+            while((ch>='0'&&ch<='9'))
+            {
+                sum=sum*10+ch-'0';
+                ch=prog[p++];
+            }
+        }
+        p--;
+        str="number";
+        syn=1;
+        if(sum>32767)
+            syn=-1;
+    }
+   else switch(ch)  
+    {
+        case'<':str="LTEQ";token[0]=ch;token[1]='\0';break;
+        case'>':str="GTEQ";token[0]=ch;token[1]='\0';break;
+        case'*':str="STAR";token[0]=ch;token[1]='\0';break;
+        case'/':;str="SLASH";token[0]=ch;token[1]='\0';break;
+        case'+':str="PLUS";token[0]=ch;token[1]='\0';break;
+        case'-':str="MINUS";token[0]=ch;token[1]='\0';break;
+        case'=':str="LT";token[0]=ch;token[1]='\0';break;
+        case';':str="SEMI";token[0]=ch;token[1]='\0';break;
+        case'(':str="LPAREN";token[0]=ch;token[1]='\0';break;
+        case')':str="RPAREN";token[0]=ch;token[1]='\0';break;
+        case',':str="COMMA";token[0]=ch;token[1]='\0';break;
+        case'{':str="LBRACE";token[0]=ch;token[1]='\0';break;
+        case'}':str="RBRACE";token[0]=ch;token[1]='\0';break;
+        case'[':str="LSQUAR";token[0]=ch;token[1]='\0';break;
+        case']':str="RSQUAR";token[0]=ch;token[1]='\0';break;
+        case'\n':syn=-2;break;
+        default: syn=-1;break;
+    }
+}
+
+int main()
+{
+    string filename1,filename2;
+    cout<<"请输入源文件名";
+    cin>>filename1;
+    ifstream fin(filename1.c_str());
+    if (!fin)
+    {
+        cout<<"read error";
+        return 0;
+    }
+    cout<<"请输入目标文件名";
+    cin>>filename2;
+    ofstream f1(filename2.c_str());
+    if(!f1)
+    {   
+        cout<<"write error";
+        return 0;
+    }
+   	int t=0;
+    row=1;
+    do
+    {
+        fin.get(ch);
+        prog[t++]=ch;
+    }while(!fin.eof());
+    p=0;
+    do
+    {
+        f();
+        switch(syn)
+        {
+        case 1: f1<<"line = "<<row<<" type = "<<str<<" string = "<<sum<<endl; break;  
+        case -2: row++;break;
+        case 0: break;
+        case -1: break;
+        default: f1<<"line = "<<row<<" type = "<<str<<" string = "<<token<<endl;break;
+        }
+    }while (p!=t);
+    system("pause");
+    return 0;
+}
